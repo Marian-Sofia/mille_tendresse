@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func UserRoutes () *gin.Engine {
+func UserRoutes() *gin.Engine {
 	c := users_controller.NewUserController()
 
 	r := gin.Default()

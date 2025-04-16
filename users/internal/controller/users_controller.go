@@ -13,13 +13,13 @@ type usersController struct {
 	service users_interfaces.IUsersService
 }
 
-func NewUserController () *usersController {
+func NewUserController() *usersController {
 	return &usersController{
 		service: users_service.NewUserService(),
 	}
 }
 
-func (ctrl *usersController) GetUsers (c *gin.Context){
+func (ctrl *usersController) GetUsers(c *gin.Context) {
 	users, err := ctrl.service.GetUsers()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
@@ -28,7 +28,7 @@ func (ctrl *usersController) GetUsers (c *gin.Context){
 	c.JSON(http.StatusOK, users)
 }
 
-func (ctrl *usersController) GetUserById (c *gin.Context){
+func (ctrl *usersController) GetUserById(c *gin.Context) {
 	userId := c.Param("userId")
 	user, err := ctrl.service.GetUserById(userId)
 	if err != nil {
@@ -38,9 +38,18 @@ func (ctrl *usersController) GetUserById (c *gin.Context){
 	c.JSON(http.StatusOK, user)
 }
 
-func (ctrl *usersController) CreateUser (c *gin.Context){
-	var userModel  users_model.CreateUser
-	c.ShouldBind(&userModel)
+func (ctrl *usersController) CreateUser(c *gin.Context) {
+	var userModel users_model.CreateUser
+
+	if err := c.ShouldBind(&userModel); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if err := users_model.ValidateUser(userModel); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
 	user, err := ctrl.service.CreateUser(userModel)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
@@ -50,7 +59,7 @@ func (ctrl *usersController) CreateUser (c *gin.Context){
 	c.JSON(http.StatusOK, user)
 }
 
-func (ctrl *usersController) UpdateUser (c *gin.Context){
+func (ctrl *usersController) UpdateUser(c *gin.Context) {
 	userId := c.Param("userId")
 	var userModel users_model.UpdateUser
 	c.ShouldBind(&userModel)
@@ -63,7 +72,7 @@ func (ctrl *usersController) UpdateUser (c *gin.Context){
 	c.JSON(http.StatusOK, user)
 }
 
-func (ctrl *usersController) DeleteUser (c *gin.Context){
+func (ctrl *usersController) DeleteUser(c *gin.Context) {
 	userId := c.Param("userId")
 	user, err := ctrl.service.DeleteUser(userId)
 	if err != nil {

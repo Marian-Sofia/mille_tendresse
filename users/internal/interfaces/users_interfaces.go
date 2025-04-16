@@ -8,6 +8,7 @@ type IUsersService interface {
 	CreateUser(users_model.CreateUser) (string, error)
 	UpdateUser(userId string, userModel users_model.UpdateUser) (users_model.User, error)
 	DeleteUser(userId string) (string, error)
+	Validatefields(userModel users_model.CreateUser) error
 }
 
 type IUsersRepository interface {
@@ -16,4 +17,5 @@ type IUsersRepository interface {
 	Create(model users_model.User) (string, error)
 	Update(userId string, userModel map[string]interface{}) (users_model.User, error)
 	Delete(userId string) (string, error)
+	FindFields(userModel string, field string) error
 }

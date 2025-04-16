@@ -2,7 +2,11 @@ package users_repository
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"reflect"
 	"time"
+	"unicode"
 
 	users_interfaces "github.com/Marian-Sofia/mille_tendresse/users/internal/interfaces"
 	users_model "github.com/Marian-Sofia/mille_tendresse/users/internal/models"
@@ -49,13 +53,13 @@ func (rpt *usersRepository) FindById(userId string) (users_model.User, error) {
 
 	objectID, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
-		return user, err 
+		return user, err
 	}
 
 	err = rpt.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return user, nil
+			return user, errors.New("User does not exist")
 		}
 		return user, err
 	}
@@ -66,11 +70,13 @@ func (rpt *usersRepository) FindById(userId string) (users_model.User, error) {
 func (rpt *usersRepository) Create(userModel users_model.User) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
 	_, err := rpt.collection.InsertOne(ctx, userModel)
 	if err != nil {
 		return "", err
 	}
-	return "User has been created", nil
+
+	return "User is created", nil
 }
 
 func (rpt *usersRepository) Update(userId string, updates map[string]interface{}) (users_model.User, error) {
@@ -84,7 +90,7 @@ func (rpt *usersRepository) Update(userId string, updates map[string]interface{}
 		return users_model.User{}, err
 	}
 
-	update := bson.M {
+	update := bson.M{
 		"$set": updates,
 	}
 
@@ -105,7 +111,7 @@ func (rpt *usersRepository) Delete(userId string) (string, error) {
 
 	objectID, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
-		return "", err 
+		return "", err
 	}
 
 	_, err = rpt.collection.DeleteOne(ctx, bson.M{"_id": objectID})
@@ -116,5 +122,34 @@ func (rpt *usersRepository) Delete(userId string) (string, error) {
 		return "", err
 	}
 
-	return "the user has been deleted", err
+	return "User has been deleted", err
+}
+
+func (rpt *usersRepository) FindFields(userModel string, field string) error {
+	fmt.Println("find1", userModel)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var user users_model.User
+
+	errUser := rpt.collection.FindOne(ctx, bson.M{field: userModel}).Decode(&user)
+	if errUser != nil {
+		fmt.Println("errUSer", errUser)
+		if errUser == mongo.ErrNoDocuments {
+			return nil
+		}
+		return errUser
+	}
+
+	val := reflect.ValueOf(user)
+	f := val.FieldByName(string(unicode.ToUpper(rune(field[0]))) + field[1:])
+
+	if f.IsValid() && f.String() == userModel {
+		return fmt.Errorf("%s already exists", field)
+	}
+
+	fmt.Println("comparation", val, f)
+
+	fmt.Println("find2", user)
+	return nil
 }
