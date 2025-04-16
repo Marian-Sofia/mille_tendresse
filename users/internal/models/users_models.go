@@ -10,6 +10,7 @@ type User struct {
 	Role           uint               `bson:"role" json:"role"`
 	Name           string             `bson:"name" json:"name"`
 	Email          string             `bson:"email" json:"email"`
+	Password       string             `bson:"password" json:"-"`
 	Phone          string             `bson:"phone" json:"phone"`
 	Identification string             `bson:"identification" json:"identification"`
 	DateOfBirth    string             `bson:"dateOfBirth" json:"dateOfBirth"`
@@ -19,6 +20,7 @@ type User struct {
 type CreateUser struct {
 	Name           string `json:"name" validate:"required,min=3,max=50"`
 	Email          string `json:"email" validate:"required,email"`
+	Password       string `json:"password" validate:"required"`
 	Phone          string `json:"phone" validate:"required,numeric"`
 	Identification string `json:"identification" validate:"required,numeric"`
 	DateOfBirth    string `json:"dateOfBirth" validate:"required,datetime=2006-01-02"`
@@ -28,6 +30,7 @@ type CreateUser struct {
 type UpdateUser struct {
 	Name           *string `json:"name"`
 	Email          *string `json:"email"`
+	// password
 	Phone          *string `json:"phone"`
 	Identification *string `json:"identification"`
 	DateOfBirth    *string `json:"dateOfBirth"`
