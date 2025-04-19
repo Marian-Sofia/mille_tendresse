@@ -1,7 +1,9 @@
 package users_service
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/Marian-Sofia/mille_tendresse/users/internal/config"
 	users_interfaces "github.com/Marian-Sofia/mille_tendresse/users/internal/interfaces"
@@ -12,17 +14,57 @@ import (
 
 type usersService struct {
 	repository users_interfaces.IUsersRepository
+	redisRepository users_repository.RedisRepository
 }
 
 func NewUserService() users_interfaces.IUsersService {
-	fmt.Println(config.DB)
 	return &usersService{
 		repository: users_repository.NewUserRepository(config.DB),
+		redisRepository: *users_repository.NewRedisRepository(config.Client),
 	}
 }
 
 func (srv *usersService) GetUsers() ([]users_model.User, error) {
-	return srv.repository.Find()
+	// buscando los usuarios en cache
+	usersRedis, err := srv.redisRepository.GetCache("users")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Parseando los usuarios que estan guardados en cache que vienen en formato json a type users_model.User
+	var usersCache []users_model.User
+	err = json.Unmarshal([]byte(usersRedis), &usersCache)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Valida si los datos en cache existen, si exiten los retorna
+	if len(usersCache) == 0 {
+		fmt.Println("No data in cache")
+	} else {
+		return usersCache, nil
+	}	
+
+	// Esta buscando los usuarios en la DB, para la primera consulta
+	users, err := srv.repository.Find()
+	if err != nil {
+		return nil, err
+	}
+
+	// Esta parseando los users de la DB a Json para guardarlon en Redis
+	jsonData, err := json.Marshal(users)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Esta guardando los usuarios en Redis para la segunda consulta
+	err = srv.redisRepository.SetCache("users", jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	// Retorna los usuarios de la DB, primera consulta. Luego de la primera consulta retorna los de Redis
+	return users, nil
 }
 
 func (srv *usersService) GetUserById(userId string) (users_model.User, error) {

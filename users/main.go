@@ -15,7 +15,9 @@ func main (){
 	}
 	fmt.Println("✅ Conectado a MongoDB")
 
+	config.InitRedis()
+
 
 	router := users_routes.UserRoutes()
-	router.Run(":5001", )
+	router.Run(":5001")
 }

@@ -12,6 +12,21 @@ services:
     networks:
       - app-network
 
+  redis:
+    image: redis:latest
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   app:
     build: .
     container_name: go_app
@@ -19,8 +34,9 @@ services:
       - "5001:5001"
     depends_on:
       - mongo
-    environment:
-      - MONGO_URI=mongodb://mongo:27017
+      - redis
+    env_file:
+      - .env
     networks:
       - app-network
 

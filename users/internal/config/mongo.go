@@ -23,9 +23,9 @@ func ConnectDB() {
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://mongo:27017")); 
 	if err != nil {
-		log.Fatal("❌ Error conectando a MongoDB:", err)
+		log.Fatal("❌ Error connecting to MongoDB:", err)
 	}
 
 	DB = client.Database("mille_tendresse")
-	log.Println("✅ Conectado a MongoDB en", mongoURI)
+	log.Println("✅ Connected to MongoDB at.", mongoURI)
 }

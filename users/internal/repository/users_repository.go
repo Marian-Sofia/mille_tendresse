@@ -1,4 +1,4 @@
-package users_repository
+package repository
 
 import (
 	"context"
@@ -59,7 +59,7 @@ func (rpt *usersRepository) FindById(userId string) (users_model.User, error) {
 	err = rpt.collection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return user, errors.New("User does not exist")
+			return user, errors.New(" User does not exist")
 		}
 		return user, err
 	}
