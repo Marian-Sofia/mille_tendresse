@@ -81,6 +81,7 @@ func (srv *usersService) GetUserById(userId string) (users_model.User, error) {
 	if err != nil {
 		fmt.Println("Error Unmarshal", err)
 	}
+	
 	// Valida si los datos en cache existen, si exiten los retorna
 	if userCache.ID.IsZero() {
 		fmt.Println("no data in cache")
@@ -112,17 +113,20 @@ func (srv *usersService) GetUserById(userId string) (users_model.User, error) {
 }
 
 func (srv *usersService) CreateUser(userModel users_model.CreateUser) (string, error) {
+	// Trae el metodo para validar los campos que llegan
 	if err := srv.Validatefields(userModel); err != nil {
 		return "", err
 	}
 
+	// hasea la contraseña que llega
 	hash, _ := HashPassword(userModel.Password)
 	fmt.Println("Hash:", hash)
 
-	// Este luego pasa para el Auth
+	// Revisa si la contraseña que llega es la misma que esta guardada (Este luego pasa para el Auth)
 	match := CheckPasswordHash(userModel.Password, hash)
 	fmt.Println("Match:", match)
 
+	// Esto convertia el modelo CreateUser a el modelo User
 	user := users_model.User{
 		Role:           2,
 		Name:           userModel.Name,
@@ -134,16 +138,43 @@ func (srv *usersService) CreateUser(userModel users_model.CreateUser) (string, e
 		Address:        userModel.Address,
 	}
 
-	return srv.repository.Create(user)
+	// Se crea el usuario en la DB
+	msg, err := srv.repository.Create(user)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Limpiar cache de Redis
+	if err := srv.redisRepository.CleanCache(); err != nil {
+		fmt.Println(err)
+	}
+
+	// Retorna el string y el error si hay
+	return msg, err
 }
 
 func (srv *usersService) UpdateUser(userId string, updates users_model.UpdateUser) (users_model.User, error) {
+	// Se Contruye el modelo update por campos
 	updateMap := buildUpdateMap(updates)
 
+	// Se verifica si llega algo para actualizar
 	if len(updateMap) == 0 {
 		return users_model.User{}, nil
 	}
-	return srv.repository.Update(userId, updateMap)
+
+	// Se actualiza el user en la DB
+	msg, err := srv.repository.Update(userId, updateMap)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	// Se limpia el cache de Redis
+	if err := srv.redisRepository.CleanCache(); err != nil {
+		fmt.Println(err)
+	}
+
+	// Se retorna un mensaje y el error
+	return msg, err
 }
 
 func (srv *usersService) DeleteUser(userId string) (string, error) {
