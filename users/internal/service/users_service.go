@@ -178,8 +178,19 @@ func (srv *usersService) UpdateUser(userId string, updates users_model.UpdateUse
 }
 
 func (srv *usersService) DeleteUser(userId string) (string, error) {
-	return srv.repository.Delete(userId)
+	msg, err := srv.repository.Delete(userId)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if err := srv.redisRepository.CleanCache(); err != nil {
+		fmt.Println(err)
+	}
+
+	return msg, err
 }
+
+
 
 // Funcion para comparar los campos a actualizar
 func buildUpdateMap(update users_model.UpdateUser) map[string]interface{} {
