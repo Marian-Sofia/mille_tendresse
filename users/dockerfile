@@ -1,16 +1,23 @@
 # syntax=docker/dockerfile:1
+# Trae la imagen de golang desde docker 
 FROM golang:1.24
 
+# Crea la directorio de trabajo
 WORKDIR /app
 
+# Copia las dependencias y las instala
 COPY go.mod ./
 COPY go.sum ./
 RUN go mod download
 
+# Copia todos los archivos al directorio de trabajo, primer punto copia todos los archivos y el segundo punto los manda a /app
 COPY . .
 
+# Compila la aplicacion a un binario
 RUN go build -o main .
 
+# Puerto en el que se ejecuta la aplicacion
 EXPOSE 5001
 
+# Este ejecuta el binario
 CMD ["./main"]

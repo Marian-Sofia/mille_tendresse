@@ -12,190 +12,197 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// Definición del servicio de usuarios
 type usersService struct {
-	repository      users_interfaces.IUsersRepository
-	redisRepository users_repository.RedisRepository
+	repository      users_interfaces.IUsersRepository // Repositorio para manejar la base de datos
+	redisRepository users_repository.RedisRepository   // Repositorio para manejar el cache de Redis
 }
 
+// Constructor de la estructura usersService
 func NewUserService() users_interfaces.IUsersService {
+	// Retorna una nueva instancia de usersService con los repositorios necesarios
 	return &usersService{
-		repository:      users_repository.NewUserRepository(config.DB),
-		redisRepository: *users_repository.NewRedisRepository(config.Client),
+		repository:      users_repository.NewUserRepository(config.DB),    // Inicializa el repositorio de usuarios con la base de datos
+		redisRepository: *users_repository.NewRedisRepository(config.Client), // Inicializa el repositorio de Redis
 	}
 }
 
+// Método para obtener todos los usuarios
 func (srv *usersService) GetUsers() ([]users_model.User, error) {
-	// Buscando los usuarios en cache
+	// Primero intenta obtener los usuarios desde Redis (cache)
 	usersRedis, err := srv.redisRepository.GetCache("users")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // En caso de error, lo maneja fatalmente
 	}
 
-	// Parseando los usuarios que estan guardados en cache que vienen en formato json a type users_model.User
+	// Si los usuarios están en cache, los parsea y los retorna
 	var usersCache []users_model.User
 	err = json.Unmarshal([]byte(usersRedis), &usersCache)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // Error en la deserialización
 	}
 
-	// Valida si los datos en cache existen, si exiten los retorna
+	// Si hay datos en cache, los devuelve
 	if len(usersCache) == 0 {
-		fmt.Println("No data in cache")
+		fmt.Println("No data in cache") // Si no hay datos en cache, pasa al siguiente paso
 	} else {
-		return usersCache, nil
+		return usersCache, nil // Retorna los datos cacheados
 	}
 
-	// Esta buscando los usuarios en la DB, para la primera consulta
+	// Si no se encuentran en cache, busca los usuarios en la base de datos
 	usersDB, err := srv.repository.Find()
 	if err != nil {
-		return nil, err
+		return nil, err // Si ocurre un error, lo devuelve
 	}
 
-	// Esta parseando los users de la DB a Json para guardarlon en Redis
+	// Si se encuentra en la base de datos, lo guarda en cache (para futuras consultas)
 	jsonData, err := json.Marshal(usersDB)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // Error al convertir la data a JSON
 	}
 
-	// Esta guardando los usuarios en Redis para la segunda consulta
 	err = srv.redisRepository.SetCache("users", jsonData)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(err) // Error al guardar en el cache de Redis
 	}
 
-	// Retorna los usuarios de la DB, primera consulta. Luego de la primera consulta retorna los de Redis
+	// Retorna los usuarios desde la base de datos
 	return usersDB, nil
 }
 
+// Método para obtener un usuario por ID
 func (srv *usersService) GetUserById(userId string) (users_model.User, error) {
-	// Buscar el usuario en Redis
+	// Intenta obtener el usuario desde Redis (cache)
 	userRedis, err := srv.redisRepository.GetCache(userId)
-	fmt.Println("userRedis", userRedis)
 	if err != nil {
-		fmt.Println("error cache", err)
+		fmt.Println("error cache", err) // Error al obtener desde el cache
 	}
 
-	// Parseando el usuario que esta guardado en cache en formato json a type users_model.User
+	// Convierte los datos de JSON a un objeto de tipo User
 	var userCache users_model.User
 	err = json.Unmarshal([]byte(userRedis), &userCache)
 	if err != nil {
-		fmt.Println("Error Unmarshal", err)
+		fmt.Println("Error Unmarshal", err) // Error en la deserialización
 	}
-	
-	// Valida si los datos en cache existen, si exiten los retorna
+
+	// Si encuentra el usuario en el cache, lo retorna
 	if userCache.ID.IsZero() {
-		fmt.Println("no data in cache")
+		fmt.Println("no data in cache") // Si no está en cache, pasa a la DB
 	} else {
 		fmt.Println("CacheUserId", userCache)
-		return userCache, nil
+		return userCache, nil // Retorna el usuario desde el cache
 	}
 
-	// Busca el user en la DB
+	// Si no está en cache, busca el usuario en la base de datos
 	userDB, err := srv.repository.FindById(userId)
 	if err != nil {
-		return userDB, err
+		return userDB, err // Si ocurre un error, lo retorna
 	}
 
-	// Parsea los datos de la DB a Json
+	// Si el usuario se encuentra en la DB, lo guarda en el cache para futuras consultas
 	jsonData, err := json.Marshal(userDB)
 	if err != nil {
-		fmt.Println("Error JsonData", err)
+		fmt.Println("Error JsonData", err) // Error al convertir a JSON
 	}
 
-	// Guarda el usuario en cache
 	err = srv.redisRepository.SetCache(userId, jsonData)
 	if err != nil {
-		fmt.Println("Error set cache", err)
+		fmt.Println("Error set cache", err) // Error al guardar en el cache
 	}
 
-	// Retorna el usuario desde la DB
+	// Retorna el usuario desde la base de datos
 	return userDB, nil
 }
 
+// Método para crear un nuevo usuario
 func (srv *usersService) CreateUser(userModel users_model.CreateUser) (string, error) {
-	// Trae el metodo para validar los campos que llegan
+	// Valida los campos del usuario (por ejemplo, que no estén vacíos o mal formateados)
 	if err := srv.Validatefields(userModel); err != nil {
-		return "", err
+		return "", err // Si hay error de validación, lo retorna
 	}
 
-	// hasea la contraseña que llega
+	// Hashea la contraseña que el usuario ingresa
 	hash, _ := HashPassword(userModel.Password)
 	fmt.Println("Hash:", hash)
 
-	// Revisa si la contraseña que llega es la misma que esta guardada (Este luego pasa para el Auth)
+	// Verifica si la contraseña ingresada coincide con la versión hasheada (esto se usa para autenticación)
 	match := CheckPasswordHash(userModel.Password, hash)
 	fmt.Println("Match:", match)
 
-	// Esto convertia el modelo CreateUser a el modelo User
+	// Convierte el modelo CreateUser al modelo User para insertar en la base de datos
 	user := users_model.User{
 		Role:           2,
 		Name:           userModel.Name,
 		Email:          userModel.Email,
-		Password:       hash,
+		Password:       hash, // La contraseña se guarda hasheada
 		Phone:          userModel.Phone,
 		Identification: userModel.Identification,
 		DateOfBirth:    userModel.DateOfBirth,
 		Address:        userModel.Address,
 	}
 
-	// Se crea el usuario en la DB
+	// Inserta el nuevo usuario en la base de datos
 	msg, err := srv.repository.Create(user)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // Si ocurre error al crear el usuario, lo muestra
 	}
 
-	// Limpiar cache de Redis
+	// Limpia el cache de Redis para asegurar que los datos estén actualizados
 	if err := srv.redisRepository.CleanCache(); err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // Error al limpiar el cache
 	}
 
-	// Retorna el string y el error si hay
+	// Retorna el mensaje de éxito o error
 	return msg, err
 }
 
+// Método para actualizar un usuario
 func (srv *usersService) UpdateUser(userId string, updates users_model.UpdateUser) (users_model.User, error) {
-	// Se Contruye el modelo update por campos
+	// Convierte el modelo de actualización a un mapa de campos para actualizar
 	updateMap := buildUpdateMap(updates)
 
-	// Se verifica si llega algo para actualizar
+	// Si no hay campos para actualizar, retorna un error vacío
 	if len(updateMap) == 0 {
 		return users_model.User{}, nil
 	}
 
-	// Se actualiza el user en la DB
+	// Realiza la actualización en la base de datos
 	msg, err := srv.repository.Update(userId, updateMap)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // Si ocurre error al actualizar el usuario, lo muestra
 	}
 
-	// Se limpia el cache de Redis
+	// Limpia el cache de Redis
 	if err := srv.redisRepository.CleanCache(); err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // Error al limpiar el cache
 	}
 
-	// Se retorna un mensaje y el error
+	// Retorna el usuario actualizado
 	return msg, err
 }
 
+// Método para eliminar un usuario
 func (srv *usersService) DeleteUser(userId string) (string, error) {
+	// Elimina el usuario de la base de datos
 	msg, err := srv.repository.Delete(userId)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // Error al eliminar el usuario
 	}
 
+	// Limpia el cache de Redis
 	if err := srv.redisRepository.CleanCache(); err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // Error al limpiar el cache
 	}
 
+	// Retorna el mensaje de éxito o error
 	return msg, err
 }
 
-
-
-// Funcion para comparar los campos a actualizar
+// Función para comparar los campos a actualizar
 func buildUpdateMap(update users_model.UpdateUser) map[string]interface{} {
 	updates := make(map[string]interface{})
 
+	// Revisa cada campo para ver si se tiene un valor que debe actualizarse
 	if update.Name != nil {
 		updates["name"] = *update.Name
 	}
@@ -218,17 +225,15 @@ func buildUpdateMap(update users_model.UpdateUser) map[string]interface{} {
 	return updates
 }
 
-// Funcion para validar los campos
+// Método para validar los campos de entrada de un usuario
 func (srv *usersService) Validatefields(userModel users_model.CreateUser) error {
-
+	// Valida que no existan campos duplicados en la base de datos (como email, teléfono, etc.)
 	if err := srv.repository.FindFields(userModel.Email, "email"); err != nil {
 		return err
 	}
-
 	if err := srv.repository.FindFields(userModel.Phone, "phone"); err != nil {
 		return err
 	}
-
 	if err := srv.repository.FindFields(userModel.Identification, "identification"); err != nil {
 		return err
 	}
@@ -236,14 +241,14 @@ func (srv *usersService) Validatefields(userModel users_model.CreateUser) error 
 	return nil
 }
 
-// Funcion para hashear password
+// Función para hashear la contraseña del usuario
 func HashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost) // Hashea la contraseña
 	return string(bytes), err
 }
 
-// Funcion para verificar la password
+// Función para comparar si la contraseña ingresada coincide con el hash almacenado
 func CheckPasswordHash(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) // Compara las contraseñas
 	return err == nil
 }

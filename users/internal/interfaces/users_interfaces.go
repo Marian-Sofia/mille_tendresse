@@ -1,7 +1,10 @@
 package users_interfaces
 
 import users_model "github.com/Marian-Sofia/mille_tendresse/users/internal/models"
+// Interfaces = contratos. Te dicen qué debe hacer una capa, pero no cómo.
 
+// IUsersService define las operaciones que puede realizar la capa de servicio con usuarios.
+// Esta interfaz representa la lógica del negocio (validaciones, reglas, etc.).
 type IUsersService interface {
 	GetUsers() ([]users_model.User, error)
 	GetUserById(userId string) (users_model.User, error)
@@ -11,6 +14,8 @@ type IUsersService interface {
 	Validatefields(userModel users_model.CreateUser) error
 }
 
+// IUsersRepository define las operaciones que se pueden hacer directamente con la base de datos.
+// Esta interfaz representa el acceso a datos (MongoDB).
 type IUsersRepository interface {
 	Find() ([]users_model.User, error)
 	FindById(userId string) (users_model.User, error)

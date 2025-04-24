@@ -8,15 +8,17 @@ import (
 )
 
 func main (){
+	// Se conecta a MongoDB
 	config.ConnectDB()
 	if config.DB == nil {
 		fmt.Errorf("❌ No se pudo conectar a la base de datos")
 	}
 	fmt.Println("✅ Conectado a MongoDB")
 
+	// Se conecta a Redis
 	config.InitRedis()
 
-
+	// Genera las rutas
 	router := users_routes.UserRoutes()
 	router.Run(":5001")
 }
