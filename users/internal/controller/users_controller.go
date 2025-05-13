@@ -52,7 +52,7 @@ func (ctrl *usersController) GetUserById(c *gin.Context) {
 func (ctrl *usersController) CreateUser(c *gin.Context) {
 	var userModel users_model.CreateUser
 
-	// Intenta bindear el JSON del cuerpo del request al struct CreateUser.
+	// Intenta bindear el JSON del body del request al struct CreateUser.
 	if err := c.ShouldBind(&userModel); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -103,4 +103,15 @@ func (ctrl *usersController) DeleteUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+// AuthUser maneja POST /users/email para autentificar un usuario por email y contraseña
+func (ctrl *usersController) AuthUser (c *gin.Context) {
+	var userData users_model.AuthUser 
+
+	if err := c.ShouldBind(&userData); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	c.JSON(http.StatusOK, nil)
 }

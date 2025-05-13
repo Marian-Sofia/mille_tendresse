@@ -2,6 +2,7 @@ package users_service
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -251,4 +252,17 @@ func HashPassword(password string) (string, error) {
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) // Compara las contraseñas
 	return err == nil
+}
+
+func (srv *usersService) AuthUser (userModel users_model.AuthUser) error {
+	userData, err := srv.repository.AuthUser(userModel.Email)
+	if err != nil {
+		return nil
+	}
+
+	if !CheckPasswordHash(userModel.Password, userData.Password) {
+		return errors.New("invalid password") 
+	}
+
+	return nil
 }

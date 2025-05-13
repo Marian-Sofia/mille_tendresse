@@ -46,6 +46,11 @@ type UpdateUser struct {
 	Address        *string `json:"address"`
 }
 
+type AuthUser struct {
+	Email string `json:"email"`
+	Password string `json:"password"`
+}
+
 // Se crea una instancia global del validador
 var validate = validator.New()
 

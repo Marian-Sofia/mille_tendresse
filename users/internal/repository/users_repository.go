@@ -148,7 +148,6 @@ func (rpt *usersRepository) Delete(userId string) (string, error) {
 
 // FindFields busca si un campo específico de un usuario (por ejemplo, email) ya existe en la base de datos.
 func (rpt *usersRepository) FindFields(userModel string, field string) error {
-	fmt.Println("find1", userModel)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Establece un tiempo de espera
 	defer cancel()
 
@@ -157,7 +156,6 @@ func (rpt *usersRepository) FindFields(userModel string, field string) error {
 	// Busca un documento que tenga el valor del campo proporcionado
 	errUser := rpt.collection.FindOne(ctx, bson.M{field: userModel}).Decode(&user)
 	if errUser != nil {
-		fmt.Println("errUSer", errUser)
 		// Si no lo encuentra, devuelve nil
 		if errUser == mongo.ErrNoDocuments {
 			return nil
@@ -172,8 +170,22 @@ func (rpt *usersRepository) FindFields(userModel string, field string) error {
 	if f.IsValid() && f.String() == userModel {
 		return fmt.Errorf("%s already exists", field) // Si el valor existe, devuelve un error
 	}
-
-	fmt.Println("comparation", val, f)
-	fmt.Println("find2", user)
 	return nil // Si tod está bien, retorna nil (sin errores)
+}
+
+func (rpt *usersRepository) AuthUser (email string) (users_model.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Establece un tiempo de espera
+	defer cancel()
+
+	var dataUser users_model.User
+
+	err := rpt.collection.FindOne(ctx, bson.M{"email": email}).Decode(&dataUser)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return dataUser, errors.New(" User does not exist")
+		}
+		return dataUser, err
+	}
+
+	return dataUser, nil
 }

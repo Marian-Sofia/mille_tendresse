@@ -25,14 +25,25 @@ services:
       timeout: 3s
       retries: 5
 
-  app:
-    build: .
-    container_name: go_app
+  users:
+    build: ./users
+    container_name: users
     ports:
       - "5001:5001"
     depends_on:
       - mongo
       - redis
+    env_file:
+      - .env
+    networks:
+      - app-network
+
+
+  auth:
+    build: ./auth
+    container_name: auth
+    ports:
+      - "5002:5002"
     env_file:
       - .env
     networks:

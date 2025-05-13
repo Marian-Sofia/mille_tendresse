@@ -12,6 +12,7 @@ type IUsersService interface {
 	UpdateUser(userId string, userModel users_model.UpdateUser) (users_model.User, error)
 	DeleteUser(userId string) (string, error)
 	Validatefields(userModel users_model.CreateUser) error
+	AuthUser(userModel users_model.AuthUser) error
 }
 
 // IUsersRepository define las operaciones que se pueden hacer directamente con la base de datos.
@@ -23,4 +24,5 @@ type IUsersRepository interface {
 	Update(userId string, userModel map[string]interface{}) (users_model.User, error)
 	Delete(userId string) (string, error)
 	FindFields(userModel string, field string) error
+	AuthUser(email string) (users_model.User, error)
 }
