@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -23,16 +24,31 @@ func NewAuthRepository () auth_interfaces.IAuthRepository {
 }
 
 func (rpt *userHTTPRepository) Login(userLogin auth_models.AuthLogin) error {
-	url := fmt.Sprintf("%s/users/email", rpt.BaseURL)
+	fmt.Println("repository", userLogin)
+	url := fmt.Sprintf("%s/users/validate", rpt.BaseURL)
 
 	userData, err :=	json.Marshal(userLogin)
 	if err != nil {
 		return errors.New("the body could not be serialized")
 	}
+	fmt.Println("repository", userData)
+
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(userData))
-	if err != nil || resp.StatusCode != http.StatusOK {
+	if err != nil {
 		return err
+	}
+	fmt.Println("repository", resp)
+
+	if resp.StatusCode != http.StatusOK {
+		 defer resp.Body.Close()
+
+    bodyBytes, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return fmt.Errorf("request failed %v", err)
+    }
+
+    return fmt.Errorf("request failed %s", string(bodyBytes))
 	}
 
 	defer resp.Body.Close()

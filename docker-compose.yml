@@ -12,11 +12,13 @@ services:
 
   redis:
     image: redis:latest
-    command: ["redis-server", "--requfdirepass", "${REDIS_PASSWORD}"]
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
     container_name: redis
     restart: always
     ports:
       - "6379:6379"
+    env_file:
+      - .env
     networks:
       - app-network
     healthcheck:

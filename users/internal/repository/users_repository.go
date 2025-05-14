@@ -181,10 +181,7 @@ func (rpt *usersRepository) AuthUser (email string) (users_model.User, error) {
 
 	err := rpt.collection.FindOne(ctx, bson.M{"email": email}).Decode(&dataUser)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return dataUser, errors.New(" User does not exist")
-		}
-		return dataUser, err
+		return users_model.User{}, err
 	}
 
 	return dataUser, nil

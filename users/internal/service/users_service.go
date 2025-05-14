@@ -257,7 +257,7 @@ func CheckPasswordHash(password, hash string) bool {
 func (srv *usersService) AuthUser (userModel users_model.AuthUser) error {
 	userData, err := srv.repository.AuthUser(userModel.Email)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if !CheckPasswordHash(userModel.Password, userData.Password) {

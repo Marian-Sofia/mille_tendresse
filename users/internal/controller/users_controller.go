@@ -113,5 +113,9 @@ func (ctrl *usersController) AuthUser (c *gin.Context) {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	c.JSON(http.StatusOK, nil)
+	if err := ctrl.service.AuthUser(userData); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	c.JSON(http.StatusOK, "ok")
 }

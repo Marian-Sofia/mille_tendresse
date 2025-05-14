@@ -32,7 +32,7 @@ func UserRoutes() *gin.Engine {
 		api.DELETE("/delete/:userId", c.DeleteUser)
 
 		// Ruta POST para obtener los datos y autentificar el usuario
-		api.POST("/email", c.AuthUser)
+		api.POST("/validate", c.AuthUser)
 	}
 
 	// Retorna el servidor con las rutas definidas
