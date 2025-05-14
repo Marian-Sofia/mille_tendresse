@@ -1,7 +1,6 @@
 package auth_controller
 
 import (
-	"fmt"
 	"net/http"
 
 	auth_interfaces "github.com/Marian-Sofia/mille_tendresse/auth/internal/interfaces"
@@ -26,9 +25,22 @@ func (ctrl *authController) Login (c *gin.Context) {
 	if err := c.ShouldBind(&dataUser); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
-	fmt.Println("controller", dataUser)
 
 	if err := ctrl.service.Login(dataUser); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	c.JSON(http.StatusOK, "ok")
+}
+
+func (ctrl *authController) Register (c *gin.Context) {
+	var dataUser auth_models.AuthRegister
+
+	if err := c.ShouldBind(&dataUser); err != nil {
+		c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	if err := ctrl.service.Register(dataUser); err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 	}
 

@@ -21,6 +21,6 @@ func (srv *authService) Login(userLogin auth_models.AuthLogin) error {
 }
 
 
-func (s *authService) Register(userRegister auth_models.AuthRegister) error {
-	return nil
+func (srv *authService) Register(userRegister auth_models.AuthRegister) error {
+	return srv.repository.Register(userRegister)
 }
